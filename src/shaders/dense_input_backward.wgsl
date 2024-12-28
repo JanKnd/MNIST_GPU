@@ -5,13 +5,14 @@ var<storage, read_write> values: array<f32>;
 
 @group(0)
 @binding(1)
-var<storage, read_write> dims: array<u32>;
-//[index in values, x, y, z, index in values, x, y, z, ...]
+var<storage, read_write> grad: array<f32>;
+//same as values only for gradients
 
 @group(0)
 @binding(2)
-var<storage, read_write> grad: array<f32>;
-//same as values only for gradients
+var<storage, read_write> dims: array<u32>;
+//[index in values, x, y, z, index in values, x, y, z, ...]
+
 
 @group(0)
 @binding(3)
@@ -37,17 +38,19 @@ fn multiplied_value_transposed_a(start_a : u32, start_b: u32, index: u32) -> f32
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    var output_grad_mat_id = status[0] * 4u;
-    var weight_mat_id = status[0] * 4u + 1u;
-    var input_grad_mat_id = status[0] * 4u + 3u;
+    var output_grad_mat_id = status[0] * 4u + 3; //0
+    var weight_mat_id = status[0] * 4u + 1u; //1
+    var input_grad_mat_id = status[0] * 4u; //3
 
     //index in grad array where input_grad and output_grad start
     var input_grad_start_index = dims[input_grad_mat_id * 4u];
+    var output_grad_start_index = dims[output_grad_mat_id * 4u];
 
     //input_grad = weight^T * output_grad
-    grad[global_id.x + input_grad_start_index] = multiplied_value_transposed_a(weights_mat_id, output_grad_id, global_id.x);
+    grad[global_id.x + input_grad_start_index] = multiplied_value_transposed_a(weight_mat_id, output_grad_mat_id, global_id.x);
+    //grad[global_id.x + input_grad_start_index] = 111.;
 
-    //if the last element of the output matrix is calculated, increment the current layer number
+    //if the last element of the output matrix is calculated, decrement the current layer number
     if (global_id.x == dims[output_grad_mat_id * 4u + 1u] - 1u && status[0] > 0u) {
         status[0] = status[0] - 1u;
     }
