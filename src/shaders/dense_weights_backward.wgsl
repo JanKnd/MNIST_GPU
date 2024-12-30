@@ -15,7 +15,7 @@ var<storage, read_write> grad: array<f32>;
 
 @group(0)
 @binding(3)
-var<storage, read_write> status: array<u32>;
+var<storage, read_write> status: array<f32>;
 //status[0] = number of current layer
 
 //same as multiplied_value but with transposed b, cols of b are rows of b and vice versa
@@ -36,9 +36,9 @@ fn multiplied_value_transposed_b(start_a : u32, start_b: u32, index: u32) -> f32
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    var output_grad_mat_id = status[0] * 4u + 3u;
-    var input_mat_id = status[0] * 4u;
-    var weight_grad_mat_id = status[0] * 4u + 1u;
+    var output_grad_mat_id = u32(status[0]) * 4u + 3u;
+    var input_mat_id = u32(status[0]) * 4u;
+    var weight_grad_mat_id = u32(status[0]) * 4u + 1u;
 
     // index in grad array where weight_grad starts
     var weight_grad_start_index = dims[weight_grad_mat_id * 4u];

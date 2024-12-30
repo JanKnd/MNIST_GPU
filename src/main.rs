@@ -22,6 +22,11 @@ output dimensions: output_size x 1
     add element wise grad*lr to values
 */
 
+pub mod data;
+pub mod network;
+pub mod run;
+pub mod train;
+
 use rand::Rng;
 use std::{mem::size_of_val, str::FromStr, time::Instant};
 use wgpu::util::DeviceExt;
@@ -34,7 +39,7 @@ async fn run() {
     //let values: Vec<f32> = (0..5).map(|_| rng.gen_range(-1.0..1.0)).collect();
     let grad: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0.5, 0.5];
     let dims: Vec<u32> = vec![0, 2, 1, 1, 2, 2, 2, 1, 6, 2, 1, 1, 8, 2, 1, 1];
-    let status: Vec<u32> = vec![0];
+    let status: Vec<f32> = vec![0.];
     let duration0 = start0.elapsed();
     print!(
         "Time elapsed in creating values and dims is: {:?} \n",
@@ -53,7 +58,7 @@ async fn execute_gpu(
     values: &[f32],
     grad: &[f32],
     dims: &[u32],
-    status: &[u32],
+    status: &Vec<f32>,
 ) -> Option<Vec<f32>> {
     // Instantiates instance of WebGPU
     let instance = wgpu::Instance::default();
@@ -87,13 +92,28 @@ async fn execute_gpu_inner(
     values: &[f32],
     grad: &[f32],
     dims: &[u32],
-    status: &[u32],
+    status: &[f32],
 ) -> Option<Vec<f32>> {
     // Load the shaders from WGSL
-    let cs_dense_forward =
+    //Dense layer shaders
+    let dense_forward_shader =
         device.create_shader_module(wgpu::include_wgsl!("shaders/dense_forward.wgsl"));
-    let cs_dense_input_backward =
+    let dense_input_backward_shader =
         device.create_shader_module(wgpu::include_wgsl!("shaders/dense_input_backward.wgsl"));
+    let dense_weight_backward_shader =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/dense_weights_backward.wgsl"));
+    let dense_bias_backward_shader =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/dense_biases_backward.wgsl"));
+    //Activation layer shaders
+    let activation_forward_shader =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/activation_fn_forward.wgsl"));
+    let activation_backward_shader =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/activation_fn_backward.wgsl"));
+    //MSE shaders
+    let mse_forward_shader =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/mse_forward.wgsl"));
+    let mse_backward_shader =
+        device.create_shader_module(wgpu::include_wgsl!("shaders/mse_backward.wgsl"));
 
     // Get the size in bytes of the buffer
     let size_values = size_of_val(values) as wgpu::BufferAddress;
@@ -245,7 +265,7 @@ async fn execute_gpu_inner(
     let compute_pipeline_a = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
         label: Some("Compute Pipeline A"),
         layout: Some(&compute_pipeline_layout),
-        module: &cs_dense_forward,
+        module: &dense_forward_shader,
         entry_point: Option::from("main"),
         compilation_options: Default::default(),
         cache: None,
@@ -254,7 +274,7 @@ async fn execute_gpu_inner(
     let compute_pipeline_b = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
         label: Some("Compute Pipeline B"),
         layout: Some(&compute_pipeline_layout),
-        module: &cs_dense_input_backward,
+        module: &dense_input_backward_shader,
         entry_point: Option::from("main"),
         compilation_options: Default::default(),
         cache: None,
@@ -287,14 +307,13 @@ async fn execute_gpu_inner(
     }
 
     // Copy data from GPU buffer to staging buffer
-    encoder.copy_buffer_to_buffer(&values_buffer, 0, &staging_buffer_values, 0, size_values,);
+    encoder.copy_buffer_to_buffer(&values_buffer, 0, &staging_buffer_values, 0, size_values);
     encoder.copy_buffer_to_buffer(&grad_buffer, 0, &staging_buffer_grad, 0, size_values);
     encoder.copy_buffer_to_buffer(&dims_buffer, 0, &staging_buffer_dims, 0, size_dims);
     encoder.copy_buffer_to_buffer(&status_buffer, 0, &staging_buffer_status, 0, size_status);
 
     // Submit command encoder for processing
     queue.submit(Some(encoder.finish()));
-
 
     // Map staging buffer to CPU address space
     let values_buffer_slice = staging_buffer_values.slice(..);
@@ -304,7 +323,6 @@ async fn execute_gpu_inner(
     // Poll the device to ensure the mapping is complete
     device.poll(wgpu::Maintain::wait()).panic_on_timeout();
 
-
     // Read data from staging buffer
     if let Ok(Ok(())) = receiver.recv_async().await {
         let data = values_buffer_slice.get_mapped_range();
@@ -313,9 +331,8 @@ async fn execute_gpu_inner(
         staging_buffer_values.unmap();
         //Some(result)
     } else {
-       // panic!("failed to run compute on gpu!")
+        // panic!("failed to run compute on gpu!")
     }
-
 
     let grad_buffer_slice = staging_buffer_grad.slice(..);
     let (sender, receiver) = flume::bounded(1);
@@ -334,8 +351,6 @@ async fn execute_gpu_inner(
     } else {
         panic!("failed to run compute on gpu!")
     }
-
-
 }
 
 pub fn main() {

@@ -15,7 +15,7 @@ var<storage, read_write> grad: array<f32>;
 
 @group(0)
 @binding(3)
-var<storage, read_write> status: array<u32>;
+var<storage, read_write> status: array<f32>;
 //status[0] = number of current layer
 
 
@@ -23,8 +23,8 @@ var<storage, read_write> status: array<u32>;
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    var bias_grad_mat_id = status[0] * 4u + 2u;
-    var output_grad_mat_id = status[0] * 4u + 3u;
+    var bias_grad_mat_id = u32(status[0]) * 4u + 2u;
+    var output_grad_mat_id = u32(status[0]) * 4u + 3u;
 
     //indeces in grad array where bias_grad and output_grad start
     var bias_grad_start_index = dims[bias_grad_mat_id * 4u];

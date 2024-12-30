@@ -15,10 +15,9 @@ var<storage, read_write> grad: array<f32>;
 
 @group(0)
 @binding(3)
-var<storage, read_write> status: array<u32>;
+var<storage, read_write> status: array<f32>;
 //status[0] = number of current layer
-//status[1] = current learning rate
-
+//status[1] = learning rate
 
 @compute
 @workgroup_size(1)

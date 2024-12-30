@@ -10,23 +10,23 @@ var<storage, read_write> grad: array<f32>;
 
 @group(0)
 @binding(2)
-var<storage, read_write> dims: array<u32>;
+var<storage, read_write> dims: array<f32>;
 //[index in values, x, y, z, index in values, x, y, z, ...]
 
 @group(0)
 @binding(3)
 var<storage, read_write> status: array<u32>;
 //status[0] = number of current layer
-
+//status[1] = current learning rate
 
 //calculate the value of the output matrix at index as a result of multiplying matrix a and b
-fn multiplied_value(start_a : u32, start_b: u32, index: u32) -> f32 {
-    var row = index / dims[start_b * 4u + 2u]; //row = index / num_cols_of_b (row of i in the output matrix)
-    var col = index % dims[start_b * 4u + 2u]; //col = index % num_cols_of_b (col of i in the output matrix)
+fn multiplied_value(mat_id_a : u32, mat_id_b: u32, index: u32) -> f32 {
+    var row = index / dims[mat_id_b * 4u + 2u]; //row = index / num_cols_of_b (row of i in the output matrix)
+    var col = index % dims[mat_id_b * 4u + 2u]; //col = index % num_cols_of_b (col of i in the output matrix)
     var sum: f32 = 0.0;
-    for(var i : u32 = 0u; i < dims[start_a * 4u + 2u]; i = i + 1u) {  //for each col in a
-        var index_a = dims[start_a * 4u] + row * dims[start_a * 4u + 2u] + i; //index in values array for value of a at row and i
-        var index_b = dims[start_b * 4u] + i * dims[start_b * 4u + 2u] + col; //index in values array for value of b at i and col
+    for(var i : u32 = 0u; i < dims[mat_id_a * 4u + 2u]; i = i + 1u) {  //for each col in a
+        var index_a = dims[mat_id_a * 4u] + row * dims[mat_id_a * 4u + 2u] + i; //index in values array for value of a at row and i
+        var index_b = dims[mat_id_b * 4u] + i * dims[mat_id_b * 4u + 2u] + col; //index in values array for value of b at i and col
         sum += values[index_a] * values[index_b];
     }
     return sum;
@@ -35,10 +35,10 @@ fn multiplied_value(start_a : u32, start_b: u32, index: u32) -> f32 {
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    var input_mat_id = status[0] * 4u;
-    var weight_mat_id = status[0] * 4u + 1u;
-    var bias_mat_id = status[0] * 4u + 2u;
-    var output_mat_id = status[0] * 4u + 3u;
+    var input_mat_id = u32(status[0]) * 4u;
+    var weight_mat_id = u32(status[0]) * 4u + 1u;
+    var bias_mat_id = u32(status[0]) * 4u + 2u;
+    var output_mat_id = u32(status[0]) * 4u + 3u;
 
     //indeces in values array where output and bias start
     var bias_start_index = dims[bias_mat_id * 4u];
