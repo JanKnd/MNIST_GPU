@@ -31,9 +31,9 @@ fn sigmoid(x: f32) -> f32 {
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     //output matrix of prev layer as status[0] is incremented while dense_forward.wgsl is executed
-    output_mat_id = u32(status[0]) * 4u - 1u;
-    input_mat_id = u32(status[0]) * 4u;
+    var output_mat_id = u32(status[0]) * 4u - 1u;
+    var input_mat_id = u32(status[0]) * 4u;
 
     //apply activation function to every element of the output matrix of the prev layer
-    values[global_id.x + dims[output_mat_id * 4u]] = sigmoid(values[global_id.x + dims[input_mat_id * 4u]]);
+    values[global_id.x + dims[input_mat_id * 4u]] = sigmoid(values[global_id.x + dims[output_mat_id * 4u]]);
 }

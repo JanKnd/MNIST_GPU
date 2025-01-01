@@ -30,15 +30,26 @@ pub mod train;
 use rand::Rng;
 use std::{mem::size_of_val, str::FromStr, time::Instant};
 use wgpu::util::DeviceExt;
+use crate::train::run_train;
 
+fn main() {
+    env_logger::init();
+    for i in 0..100{
+
+        pollster::block_on(run_train());
+    }
+
+}
+
+/*
 #[cfg_attr(test, allow(dead_code))]
 async fn run() {
     let start0 = Instant::now();
     let mut rng = rand::thread_rng();
-    let values: Vec<f32> = vec![1., 0., 1., 0., 0., 1., 0., 1., 0., 0.];
+    let values: Vec<f32> = vec![1., 0., 1., 0., 0., 1., 0., 1., 0., 0.,0.,0.];
     //let values: Vec<f32> = (0..5).map(|_| rng.gen_range(-1.0..1.0)).collect();
-    let grad: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0.5, 0.5];
-    let dims: Vec<u32> = vec![0, 2, 1, 1, 2, 2, 2, 1, 6, 2, 1, 1, 8, 2, 1, 1];
+    let grad: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0.5, 0.5, 0., 0.];
+    let dims: Vec<u32> = vec![0, 2, 1, 1, 2, 2, 2, 1, 6, 2, 1, 1, 8, 2, 1, 1, 10, 2, 1, 1];
     let status: Vec<f32> = vec![0.];
     let duration0 = start0.elapsed();
     print!(
@@ -274,7 +285,7 @@ async fn execute_gpu_inner(
     let compute_pipeline_b = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
         label: Some("Compute Pipeline B"),
         layout: Some(&compute_pipeline_layout),
-        module: &dense_input_backward_shader,
+        module: &activation_forward_shader,
         entry_point: Option::from("main"),
         compilation_options: Default::default(),
         cache: None,
@@ -329,9 +340,9 @@ async fn execute_gpu_inner(
         let result: Vec<f32> = bytemuck::cast_slice(&data).to_vec();
         drop(data);
         staging_buffer_values.unmap();
-        //Some(result)
+        return Some(result);
     } else {
-        // panic!("failed to run compute on gpu!")
+         panic!("failed to run compute on gpu!")
     }
 
     let grad_buffer_slice = staging_buffer_grad.slice(..);
@@ -341,6 +352,7 @@ async fn execute_gpu_inner(
     // Poll the device to ensure the mapping is complete
     device.poll(wgpu::Maintain::wait()).panic_on_timeout();
 
+    /*
     // Read data from staging buffer
     if let Ok(Ok(())) = receiver.recv_async().await {
         let data = grad_buffer_slice.get_mapped_range();
@@ -351,6 +363,8 @@ async fn execute_gpu_inner(
     } else {
         panic!("failed to run compute on gpu!")
     }
+
+     */
 }
 
 pub fn main() {
@@ -369,3 +383,4 @@ pub fn main() {
 
 //#[cfg(test)]
 //mod tests;
+*/

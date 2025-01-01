@@ -5,13 +5,15 @@ var<storage, read_write> values: array<f32>;
 
 @group(0)
 @binding(1)
-var<storage, read_write> dims: array<u32>;
-//[index in values, x, y, z, index in values, x, y, z, ...]
+var<storage, read_write> grad: array<f32>;
+//same as values only for gradients
 
 @group(0)
 @binding(2)
-var<storage, read_write> grad: array<f32>;
-//same as values only for gradients
+var<storage, read_write> dims: array<u32>;
+//[index in values, x, y, z, index in values, x, y, z, ...]
+
+
 
 @group(0)
 @binding(3)

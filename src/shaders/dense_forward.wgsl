@@ -10,12 +10,12 @@ var<storage, read_write> grad: array<f32>;
 
 @group(0)
 @binding(2)
-var<storage, read_write> dims: array<f32>;
+var<storage, read_write> dims: array<u32>;
 //[index in values, x, y, z, index in values, x, y, z, ...]
 
 @group(0)
 @binding(3)
-var<storage, read_write> status: array<u32>;
+var<storage, read_write> status: array<f32>;
 //status[0] = number of current layer
 //status[1] = current learning rate
 
@@ -49,8 +49,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 
     //if the last element of the output matrix is calculated, increment the current layer number
+
+    //TODO: uncomment when not testing backpropagation shaders seperatly
+
     if (global_id.x == dims[output_mat_id * 4u + 1u] - 1u ) {
-        status[0] = status[0] + 1u;
+        status[0] = status[0] + 1.;
     }
+
 }
 
