@@ -44,7 +44,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var bias_start_index = dims[bias_mat_id * 4u];
     var output_start_index = dims[output_mat_id * 4u];
 
-    //output = weight * input + bias
+    //output = weight * input + biasr
     values[global_id.x + output_start_index] = multiplied_value(weight_mat_id, input_mat_id, global_id.x) + values[global_id.x + bias_start_index];
 
 

@@ -24,12 +24,12 @@ var<storage, read_write> data_dims: array<u32>;
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    var output_mat_id = u32(status[0]) * 4u - 1u;
+    var output_mat_id = u32(status[0]) * 4u;
     var output_length = dims[output_mat_id * 4u + 1u] * dims[output_mat_id * 4u + 2u];
 
     var output_mat_start_index = dims[output_mat_id * 4u];
 
-    var example_output_start_index = data_dims[u32(status[2]) * 2u * 4u];
+    var example_output_start_index = data_dims[u32(status[2]) * 2u * 4u + 4u];
 
     var sum = 0.0;
     for(var i: u32 = 0u; i < output_length; i = i + 1u) {

@@ -35,11 +35,10 @@ use crate::data::Data;
 use crate::network::Network;
 
 #[cfg_attr(test, allow(dead_code))]
-pub async fn run_train() {
-    let mut network = Network::new_xor();
-    let data = Data::new_xor();
-
-
+pub async fn run_train(dnn: Network, training_set: Data) -> Network{
+    let mut network = dnn;
+    let mut prev_mse= 9999999.;
+    network.status[1] = 0.1;
 
     loop {
         let start = Instant::now();
@@ -48,8 +47,8 @@ pub async fn run_train() {
             &network.grad,
             &network.dims,
             &network.status,
-            &data.values,
-            &data.dims,
+            &training_set.values,
+            &training_set.dims,
         )
             .await
             .unwrap();
@@ -59,8 +58,17 @@ pub async fn run_train() {
         network.status[3] = 0.;
         network.status[4] = 0.;
         print!("{:?} \n MSE: {:?} \n \n ", network.status, mse);
-
+        if mse >= prev_mse {
+            network.status[1] *= 0.6;
+        }
+        prev_mse = mse;
+        //dbg!(&network.grad);
+        //network.grad = vec![0.; network.grad.len()];
+        //dbg!(&network.values);
+        //if (mse < 0.1){ break;}
+        network.save("xor.bin");
     }
+    network
 }
 
 #[cfg_attr(test, allow(dead_code))]
@@ -545,7 +553,7 @@ async fn train_gpu_inner(
             cpass.dispatch_workgroups(dims[dims.len() - 3] * dims[dims.len() - 2], 1, 1);
         }
 
-        for j in (0..dims.len() / (4 * 4)).rev() {
+        for j in (0..(dims.len() - 4) / (4 * 4)).rev() {
             // runs activation function backward pass shader
             {
                 let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -556,7 +564,7 @@ async fn train_gpu_inner(
                 cpass.set_bind_group(0, &bind_group_network, &[]);
                 cpass.set_bind_group(1, &bind_group_data, &[]);
                 //because the output of the activation function is the same size as the input, same indexes are used
-                cpass.dispatch_workgroups(dims[j * 4 + 12 + 1] * dims[j * 4 + 12 + 2], 1, 1);
+                cpass.dispatch_workgroups(dims[j * 16 + 12 + 1] * dims[j * 16 + 12 + 2], 1, 1);
             }
 
             // runs dense weights backward pass shader
@@ -569,7 +577,7 @@ async fn train_gpu_inner(
                 cpass.set_bind_group(0, &bind_group_network, &[]);
                 cpass.set_bind_group(1, &bind_group_data, &[]);
                 // dims[j * 4 + 4 + 1] = weights_rows, dims[j * 4 + 4 + 2] = weights_cols
-                cpass.dispatch_workgroups(dims[j * 4 + 4 + 1] * dims[j * 4 + 4 + 2], 1, 1);
+                cpass.dispatch_workgroups(dims[j * 16 + 4 + 1] * dims[j * 16 + 4 + 2], 1, 1);
             }
 
             // runs dense biases backward pass shader
@@ -582,7 +590,7 @@ async fn train_gpu_inner(
                 cpass.set_bind_group(0, &bind_group_network, &[]);
                 cpass.set_bind_group(1, &bind_group_data, &[]);
                 // dims[j * 4 + 8 + 1] = biases_rows, dims[j * 4 + 8 + 2] = biases_cols
-                cpass.dispatch_workgroups(dims[j * 4 + 8 + 1] * dims[j * 4 + 8 + 2], 1, 1);
+                cpass.dispatch_workgroups(dims[j * 16 + 8 + 1] * dims[j * 16 + 8 + 2], 1, 1);
             }
 
             // runs dense input backward pass shader
@@ -595,7 +603,7 @@ async fn train_gpu_inner(
                 cpass.set_bind_group(0, &bind_group_network, &[]);
                 cpass.set_bind_group(1, &bind_group_data, &[]);
                 // dims[j * 4 + 1] = output_rows, dims[j * 4 + 2] = output_cols
-                cpass.dispatch_workgroups(dims[j * 4 + 1] * dims[j * 4 + 2], 1, 1);
+                cpass.dispatch_workgroups(dims[j * 16 + 1] * dims[j * 16 + 2], 1, 1);
             }
         }
 

@@ -27,6 +27,7 @@ fn sigmoid(x: f32) -> f32 {
     return 1.0 / (1.0 + exp(-x));
 }
 
+
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -35,5 +36,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var input_mat_id = u32(status[0]) * 4u;
 
     //apply activation function to every element of the output matrix of the prev layer
-    values[global_id.x + dims[input_mat_id * 4u]] = sigmoid(values[global_id.x + dims[output_mat_id * 4u]]);
+    values[global_id.x + dims[input_mat_id * 4u]] = tanh(values[global_id.x + dims[output_mat_id * 4u]]);
 }

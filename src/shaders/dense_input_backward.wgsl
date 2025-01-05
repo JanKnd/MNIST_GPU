@@ -50,8 +50,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     grad[global_id.x + input_grad_start_index] = multiplied_value_transposed_a(weight_mat_id, output_grad_mat_id, global_id.x);
     //grad[global_id.x + input_grad_start_index] = 111.;
 
-    //if the last element of the output matrix is calculated, decrement the current layer number
+    //if the ast element of the output matrix is calculated, decrement the current layer number
+
     if (global_id.x == dims[output_grad_mat_id * 4u + 1u] - 1u && u32(status[0]) > 0u) {
         status[0] = status[0] - 1.;
     }
+
+
+
 }

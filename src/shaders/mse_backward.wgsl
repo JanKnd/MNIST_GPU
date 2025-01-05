@@ -30,13 +30,13 @@ var<storage, read_write> data_dims: array<u32>;
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
-    var output_mat_start_index = dims[(u32(status[0]) * 4u - 1u) * 4u];
+    var output_mat_start_index = dims[(u32(status[0]) * 4u) * 4u];
 
-    var output_length = dims[(u32(status[0]) * 4u - 1u) * 4u + 1u] * dims[(u32(status[0]) * 4u - 1u) * 4u + 2u];
+    var output_length = dims[(u32(status[0]) * 4u) * 4u + 1u] * dims[(u32(status[0]) * 4u) * 4u + 2u];
 
-    var example_output_start_index = data_dims[u32(status[2]) * 2u * 4u];
+    var example_output_start_index = data_dims[u32(status[2]) * 2u * 4u + 4u];
 
-    grad[global_id.x + output_mat_start_index] = (2.0 * (values[global_id.x + output_mat_start_index] - data_values[global_id.x + example_output_start_index])) / f32(output_length);
+    grad[global_id.x  + output_mat_start_index] =  ((2.0 / f32(output_length)) * (values[global_id.x + output_mat_start_index] - data_values[global_id.x + example_output_start_index])) ;
 
     if (global_id.x == output_length - 1u) {
             status[2] += 1.0;

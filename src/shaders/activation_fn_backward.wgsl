@@ -28,7 +28,11 @@ fn relu_derivative(x: f32) -> f32 {
 }
 
 fn sigmoid_derivative(x: f32) -> f32 {
-    return x * (1.0 - x);
+    return exp(-x) / ((2.0 * exp(-x)) + (pow(exp(-x),2.0)) + 1.0);
+}
+
+fn tanh_derivative(x: f32) -> f32 {
+    return 1.0 - pow(tanh(x), 2.0);
 }
 
 @compute
@@ -37,12 +41,12 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     //grad_x = grad_Y * grad_activation_fn
 
     //input_grad is output matrix of prev layer as status[0] is incremented while dense_forward.wgsl is executed
-    var input_grad_mat_id = u32(status[0]) * 4u - 1u;
+    var input_grad_mat_id = u32(status[0]) * 4u + 3u;
     //output_grad is input matrix of current layer
-    var output_grad_mat_id = u32(status[0]) * 4u;
+    var output_grad_mat_id = u32(status[0]) * 4u + 4u;
 
     //apply activation function to every element of the output matrix of the prev layer
-    grad[global_id.x + dims[input_grad_mat_id * 4u]] = grad[global_id.x + dims[output_grad_mat_id * 4u]] * sigmoid_derivative(values[global_id.x + dims[input_grad_mat_id * 4u]]);
+    grad[global_id.x + dims[input_grad_mat_id * 4u]] = grad[global_id.x + dims[output_grad_mat_id * 4u]] * tanh_derivative(values[global_id.x + dims[input_grad_mat_id * 4u]]);
 
     //switch
 }

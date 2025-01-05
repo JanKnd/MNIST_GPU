@@ -21,10 +21,5 @@ var<storage, read_write> data_dims: array<u32>;
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     //data_dims[status[2] * 2 * 4] is the index in data_values where the starting index of the example input matrix is stored
-    values[global_id.x] = data_values[global_id.x + data_dims[u32(status[2]) * 2 * 4]];
-    /*
-    if(global_id.x == 0u) {
-
-    }
-    */
+    values[global_id.x] = data_values[global_id.x + data_dims[u32(status[2] * 8.)]]; //data_dims[u32(status[2]) * 8]];
 }
